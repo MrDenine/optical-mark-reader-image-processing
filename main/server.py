@@ -6,10 +6,6 @@ import uvicorn
 import uuid
 import numpy as np
 import cv2
-
-
-    
-
 app = FastAPI()
 IMAGEDIR = "images/"
 IMAGECROPDIR = "crop/"
