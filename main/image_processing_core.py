@@ -3,6 +3,9 @@ import numpy as np
 import cv2
 import imutils
 from imutils import contours
+from PIL import Image
+
+ROI = "roi/"
 
 def order_points(pts):
     # initialzie a list of coordinates that will be ordered
@@ -136,24 +139,90 @@ def find_squares(filename : str):
 
     #Get bounding rectangle of contour with maximum area, and mark it with green rectangle
     x, y, w, h = cv2.boundingRect(max_c)
-    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), thickness = 2)
+    im_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), thickness = 2)
+    # convert back to Image object
+    # im = Image.fromarray(cv2.cvtColor(im_arr_bgr, cv2.COLOR_BGR2RGB))
+    
+    #Save object to image file
+    roi = im_arr_bgr[y:y+h, x:x+w]
+    cv2.imwrite(f"{ROI}section1.jpg", roi)
 
     #Get bounding rectangle of contour with second maximum area, and mark it with blue rectangle
     x, y, w, h = cv2.boundingRect(smax_c)
-    cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
+    ims_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
+    # convert back to Image object
+    # ims = Image.fromarray(cv2.cvtColor(ims_arr_bgr, cv2.COLOR_BGR2RGB))
+    
+    #Save object to image file
+    roi = im_arr_bgr[y:y+h, x:x+w]
+    cv2.imwrite(f"{ROI}section2.jpg", roi)
     
     #Get bounding rectangle of contour with third maximum area, and mark it with blue rectangle
     x, y, w, h = cv2.boundingRect(tmax_c)
-    cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
+    imt_arr_bgr =cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
+    # convert back to Image object
+    # imt = Image.fromarray(cv2.cvtColor(imt_arr_bgr, cv2.COLOR_BGR2RGB))
+    
+    #Save object to image file
+    roi = im_arr_bgr[y:y+h, x:x+w]
+    cv2.imwrite(f"{ROI}id.jpg", roi)
     
     #Get bounding rectangle of contour with fourth maximum area, and mark it with blue rectangle
-    x, y, w, h = cv2.boundingRect(fmax_c)
-    cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
+    # x, y, w, h = cv2.boundingRect(fmax_c)
+    # imf_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
+    # convert back to Image object
+    # imf = Image.fromarray(cv2.cvtColor(imf_arr_bgr, cv2.COLOR_BGR2RGB))
+    
+    #Save object to image file
+    # roi = im_arr_bgr[y:y+h, x:x+w]
+    # cv2.imwrite(f"{ROI}imf.jpg", roi)
+    
+    # get_answer2(im)
 
     # Show result (for testing).
     cv2.imshow('img', img)
+    cv2.imshow("thresh", thresh)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+    
+def get_answer2(image):
+    original = image.copy()
+    gray = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (3,3), 0)
+    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+    # Find contours and filter using contour area filtering to remove noise
+    cnts, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    AREA_THRESHOLD = 10
+    for c in cnts:
+        area = cv2.contourArea(c)
+        if area < AREA_THRESHOLD:
+            cv2.drawContours(thresh, [c], -1, 0, -1)
+
+    # Repair checkbox horizontal and vertical walls
+    repair_kernel1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,1))
+    repair = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, repair_kernel1, iterations=1)
+    repair_kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT, (1,5))
+    repair = cv2.morphologyEx(repair, cv2.MORPH_CLOSE, repair_kernel2, iterations=1)
+
+    # Detect checkboxes using shape approximation and aspect ratio filtering
+    checkbox_contours = []
+    cnts, _ = cv2.findContours(repair, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.035 * peri, True)
+        x,y,w,h = cv2.boundingRect(approx)
+        aspect_ratio = w / float(h)
+        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2):
+            cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
+            checkbox_contours.append(c)
+
+    print('Checkboxes:', len(checkbox_contours))
+    cv2.imshow('thresh', thresh)
+    cv2.imshow('repair', repair)
+    cv2.imshow('original', original)
+    cv2.waitKey()
 
 def get_answer(filename : str, Answer_key):
     # Load image, grayscale, Gaussian blur, Otsu's threshold
