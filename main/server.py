@@ -6,7 +6,8 @@ import uvicorn
 import uuid
 import numpy as np
 import cv2
-app = FastAPI()
+
+app = FastAPI(debug=True)
 IMAGEDIR = "images/"
 IMAGECROPDIR = "crop/"
 
@@ -27,7 +28,7 @@ async def predict_image(file:UploadFile = File(...)):
     im = Image.fromarray(numpy_array)
     im_crop = f"{IMAGECROPDIR}{uuid.uuid4()}.jpg"
     im.save(im_crop)
-    # find_squares(im_crop)
+    find_squares(im_crop)
     
     return {"headers":file.headers ,"filename": file.filename}
 

@@ -139,9 +139,7 @@ def find_squares(filename : str):
 
     #Get bounding rectangle of contour with maximum area, and mark it with green rectangle
     x, y, w, h = cv2.boundingRect(max_c)
-    im_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), thickness = 2)
-    # convert back to Image object
-    # im = Image.fromarray(cv2.cvtColor(im_arr_bgr, cv2.COLOR_BGR2RGB))
+    im_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
     
     #Save object to image file
     roi = im_arr_bgr[y:y+h, x:x+w]
@@ -149,137 +147,87 @@ def find_squares(filename : str):
 
     #Get bounding rectangle of contour with second maximum area, and mark it with blue rectangle
     x, y, w, h = cv2.boundingRect(smax_c)
-    ims_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
-    # convert back to Image object
-    # ims = Image.fromarray(cv2.cvtColor(ims_arr_bgr, cv2.COLOR_BGR2RGB))
+    ims_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
     
     #Save object to image file
-    roi = im_arr_bgr[y:y+h, x:x+w]
+    roi = ims_arr_bgr[y:y+h, x:x+w]
     cv2.imwrite(f"{ROI}section2.jpg", roi)
     
     #Get bounding rectangle of contour with third maximum area, and mark it with blue rectangle
     x, y, w, h = cv2.boundingRect(tmax_c)
-    imt_arr_bgr =cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
-    # convert back to Image object
-    # imt = Image.fromarray(cv2.cvtColor(imt_arr_bgr, cv2.COLOR_BGR2RGB))
+    imt_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
     
     #Save object to image file
-    roi = im_arr_bgr[y:y+h, x:x+w]
+    roi = imt_arr_bgr[y:y+h, x:x+w]
     cv2.imwrite(f"{ROI}id.jpg", roi)
     
-    #Get bounding rectangle of contour with fourth maximum area, and mark it with blue rectangle
-    # x, y, w, h = cv2.boundingRect(fmax_c)
-    # imf_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), thickness = 2)
-    # convert back to Image object
-    # imf = Image.fromarray(cv2.cvtColor(imf_arr_bgr, cv2.COLOR_BGR2RGB))
-    
-    #Save object to image file
-    # roi = im_arr_bgr[y:y+h, x:x+w]
-    # cv2.imwrite(f"{ROI}imf.jpg", roi)
-    
-    # get_answer2(im)
+    print(get_id())
 
-    # Show result (for testing).
-    cv2.imshow('img', img)
-    cv2.imshow("thresh", thresh)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    
-def get_answer2(image):
+def get_id():
+    # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
+    image = cv2.imread(f'{ROI}id.jpg')
     original = image.copy()
-    gray = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (3,3), 0)
     thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-
+    
     # Find contours and filter using contour area filtering to remove noise
-    cnts, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    AREA_THRESHOLD = 10
-    for c in cnts:
-        area = cv2.contourArea(c)
-        if area < AREA_THRESHOLD:
-            cv2.drawContours(thresh, [c], -1, 0, -1)
-
-    # Repair checkbox horizontal and vertical walls
-    repair_kernel1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,1))
-    repair = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, repair_kernel1, iterations=1)
-    repair_kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT, (1,5))
-    repair = cv2.morphologyEx(repair, cv2.MORPH_CLOSE, repair_kernel2, iterations=1)
-
+    cnts, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
     # Detect checkboxes using shape approximation and aspect ratio filtering
     checkbox_contours = []
-    cnts, _ = cv2.findContours(repair, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+    checkbox_answer = []
+        
     for c in cnts:
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.035 * peri, True)
         x,y,w,h = cv2.boundingRect(approx)
         aspect_ratio = w / float(h)
-        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2):
+        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2) and (w >= 22 and w <= 24):
+            # cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
             cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
             checkbox_contours.append(c)
 
-    print('Checkboxes:', len(checkbox_contours))
-    cv2.imshow('thresh', thresh)
-    cv2.imshow('repair', repair)
-    cv2.imshow('original', original)
-    cv2.waitKey()
-
-def get_answer(filename : str, Answer_key):
-    # Load image, grayscale, Gaussian blur, Otsu's threshold
-    image = cv2.imread(filename)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (7,7), 0)
-    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    # print('Checkboxes:', len(checkbox_contours))
     
-    # Find contours and sort for largest contour
-    cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
-    displayCnt = None
+    idCnts = contours.sort_contours(checkbox_contours)[0]
+    idList = []
     
-    for c in cnts:
-        # Perform contour approximation
-        peri = cv2.arcLength(c,True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+    for (q, i) in enumerate(np.arange(0, len(idCnts), 10)):
+        # sort the contours for the current question from
+        # left to right, then initialize the index of the
+        # check answer
+        cnts = contours.sort_contours(idCnts[i:i + 10],"top-to-bottom")[0]
         
-        if len(approx) == 4:
-            displayCnt = approx
-            break
-
-    # Obtain birds' eye view of image
-    warped = four_point_transform(gray,  np.array(displayCnt).reshape(4,2))
-    thresh= cv2.threshold(warped, 0, 255, cv2.THRESH_BINARY_INV| cv2.THRESH_OTSU)[1]
-    cnts= cv2.findContours(warped, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts= imutils.grab_contours(cnts)
-    questionCnts=[]
-    for c in cnts:
-        (x, y, w, h)= cv2.boundingRect(c)
-        ar= w/ float(h)
-        print(w,h,ar)
-        if w>=20 and h>=20 and ar >=0.9 or ar<= 1.1:
-            questionCnts.append(c)
-            
-    #sorting the contours from top to botton
-    questionCnts= contours.sort_contours(questionCnts, method="top-to-botton")[0]
-    correct= 0 
-
-    for (q, i) in enumerate(np.arange(0, len(questionCnts), 5)):
-        cnts= contours.sort_contours(questionCnts[i: i+5]) [0]
-        bubbled= None
-
-        for (j,c) in enumerate(cnts):
+        check = None
+        
+    # loop over the sorted contours
+        for (j, c) in enumerate(cnts):
+            # construct a mask that reveals only the current
+            # "box" for the question
             mask = np.zeros(thresh.shape, dtype="uint8")
             cv2.drawContours(mask, [c], -1, 255, -1)
-            mask= cv2.bitwise_and(thresh, thresh, mask=mask)
-            total= cv2.countNonZero(mask)
+            
+            # apply the mask to the thresholded image, then
+            # count the number of non-zero pixels in the
+            # box area
+            mask = cv2.bitwise_and(thresh, thresh, mask=mask)
+            total = cv2.countNonZero(mask)
 
-            if bubbled is None or total >bubbled[0]:
-                bubbled= (total, j)
-            color= (0, 0, 255)
-            k= Answer_key[q]    
-            if k == bubbled[1]:
-                correct= correct+1
-
-    print(correct)  
+            if total > 300:
+                if(j+1 < 10):
+                    idList.append(j+1)
+                else :
+                    idList.append(0)
     
-        
+    if(len(idList)!=13):
+        return False
+    
+    _id = "".join(str(item) for item in idList)
+    return _id
+    
+def get_section1():
+    return True
+
+def get_section2():
+    return True
