@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi import UploadFile,File
-from image_processing_core import cropPerspective ,find_squares
+from image_processing_core import cropPerspective ,get_answer
 from PIL import Image
 import uvicorn
 import uuid
@@ -28,7 +28,7 @@ async def predict_image(file:UploadFile = File(...)):
     im = Image.fromarray(numpy_array)
     im_crop = f"{IMAGECROPDIR}{uuid.uuid4()}.jpg"
     im.save(im_crop)
-    find_squares(im_crop)
+    get_answer(im_crop)
     
     return {"headers":file.headers ,"filename": file.filename}
 

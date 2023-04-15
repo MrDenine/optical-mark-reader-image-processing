@@ -91,7 +91,7 @@ def cropPerspective(filename : str):
     # cv2.waitKey()
     return warped
 
-def find_squares(filename : str):
+def get_answer(filename : str):
     # Read input image
     img = cv2.imread(filename)
 
@@ -161,7 +161,9 @@ def find_squares(filename : str):
     roi = imt_arr_bgr[y:y+h, x:x+w]
     cv2.imwrite(f"{ROI}id.jpg", roi)
     
-    print(get_id())
+    # print(get_id())
+    get_section1()
+    get_section2()
 
 def get_id():
     # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
@@ -176,7 +178,6 @@ def get_id():
     
     # Detect checkboxes using shape approximation and aspect ratio filtering
     checkbox_contours = []
-    checkbox_answer = []
         
     for c in cnts:
         peri = cv2.arcLength(c, True)
@@ -227,7 +228,149 @@ def get_id():
     return _id
     
 def get_section1():
+    # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
+    image = cv2.imread(f'{ROI}section1.jpg')
+    original = image.copy()
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (3,3), 0)
+    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    
+    # Find contours and filter using contour area filtering to remove noise
+    cnts, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Detect checkboxes using shape approximation and aspect ratio filtering
+    checkbox_contours = []
+    
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.035 * peri, True)
+        x,y,w,h = cv2.boundingRect(approx)
+        aspect_ratio = w / float(h)
+        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2)  and (w >= 33 and w <= 35):
+            # cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+            cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
+            checkbox_contours.append(c)
+
+    print('Checkboxes:', len(checkbox_contours))
+    
+    section1Cnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
+    section1List = []
+    
+    for (q, i) in enumerate(np.arange(0, len(section1Cnts), 4)):
+        # sort the contours for the current question from
+        # left to right, then initialize the index of the
+        # check answer
+        cnts = contours.sort_contours(section1Cnts[i:i + 4])[0]
+        answer = None
+    # loop over the sorted contours
+        for (j, c) in enumerate(cnts):
+            # construct a mask that reveals only the current
+            # "box" for the question
+            mask = np.zeros(thresh.shape, dtype="uint8")
+            cv2.drawContours(mask, [c], -1, 255, -1)
+            
+            # apply the mask to the thresholded image, then
+            # count the number of non-zero pixels in the
+            # box area
+            mask = cv2.bitwise_and(thresh, thresh, mask=mask)
+            total = cv2.countNonZero(mask)
+            
+            # if the current total has a larger number of total
+            # non-zero pixels, then we are examining the currently
+            # bubbled-in answer
+            
+            if answer is None and total > 400:
+                answer = (q+1,get_answer_notation(j+1))
+                
+            elif answer is not None and total > 400 : 
+                answer = (q+1,None) 
+            
+            if j+1 == 4 and answer is None:
+                answer = (q+1,None) 
+                
+        section1List.append(answer)
+            
+            # cv2.imshow("mask", mask)
+            # cv2.waitKey()
+
+    print('section1List:', section1List)
+    
     return True
 
 def get_section2():
+    # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
+    image = cv2.imread(f'{ROI}section2.jpg')
+    original = image.copy()
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (3,3), 0)
+    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    
+    # Find contours and filter using contour area filtering to remove noise
+    cnts, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Detect checkboxes using shape approximation and aspect ratio filtering
+    checkbox_contours = []
+    
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.035 * peri, True)
+        x,y,w,h = cv2.boundingRect(approx)
+        aspect_ratio = w / float(h)
+        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2)  and (w >= 33 and w <= 35):
+            # cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+            cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
+            checkbox_contours.append(c)
+
+    print('Checkboxes:', len(checkbox_contours))
+    
+    section2Cnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
+    section2List = []
+    
+    for (q, i) in enumerate(np.arange(0, len(section2Cnts), 4)):
+        # sort the contours for the current question from
+        # left to right, then initialize the index of the
+        # check answer
+        cnts = contours.sort_contours(section2Cnts[i:i + 4])[0]
+        answer = None
+    # loop over the sorted contours
+        for (j, c) in enumerate(cnts):
+            # construct a mask that reveals only the current
+            # "box" for the question
+            mask = np.zeros(thresh.shape, dtype="uint8")
+            cv2.drawContours(mask, [c], -1, 255, -1)
+            
+            # apply the mask to the thresholded image, then
+            # count the number of non-zero pixels in the
+            # box area
+            mask = cv2.bitwise_and(thresh, thresh, mask=mask)
+            total = cv2.countNonZero(mask)
+            
+            # if the current total has a larger number of total
+            # non-zero pixels, then we are examining the currently
+            # bubbled-in answer
+            
+            if answer is None and total > 400:
+                answer = (q+21,get_answer_notation(j+1))
+                
+            elif answer is not None and total > 400 : 
+                answer = (q+21,None) 
+            
+            if j+1 == 4 and answer is None:
+                answer = (q+21,None) 
+                
+        section2List.append(answer)
+            
+            # cv2.imshow("mask", mask)
+            # cv2.waitKey()
+
+    print('section2List:', section2List)
+    
     return True
+
+def get_answer_notation(value):
+     return {
+        1: 'ก',
+        2: 'ข',
+        3: 'ค',
+        4: 'ง',
+    }.get(value, None)  
