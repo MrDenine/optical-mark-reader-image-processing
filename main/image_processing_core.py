@@ -160,10 +160,10 @@ def get_answer(filename : str):
     #Save object to image file
     roi = imt_arr_bgr[y:y+h, x:x+w]
     cv2.imwrite(f"{ROI}id.jpg", roi)
-    
-    # print(get_id())
-    get_section1()
-    get_section2()
+    answer = [*get_section1() , *get_section2()]
+
+    json_answer = [dict(zip(("no","answer"),x)) for x in answer]
+    return get_id() , json_answer
 
 def get_id():
     # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
@@ -251,7 +251,7 @@ def get_section1():
             cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
             checkbox_contours.append(c)
 
-    print('Checkboxes:', len(checkbox_contours))
+    # print('Checkboxes:', len(checkbox_contours))
     
     section1Cnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
     section1List = []
@@ -293,9 +293,8 @@ def get_section1():
             # cv2.imshow("mask", mask)
             # cv2.waitKey()
 
-    print('section1List:', section1List)
-    
-    return True
+    # print('section1List:', section1List)
+    return section1List
 
 def get_section2():
     # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
@@ -321,7 +320,7 @@ def get_section2():
             cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
             checkbox_contours.append(c)
 
-    print('Checkboxes:', len(checkbox_contours))
+    # print('Checkboxes:', len(checkbox_contours))
     
     section2Cnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
     section2List = []
@@ -363,9 +362,9 @@ def get_section2():
             # cv2.imshow("mask", mask)
             # cv2.waitKey()
 
-    print('section2List:', section2List)
+    # print('section2List:', section2List)
     
-    return True
+    return section2List
 
 def get_answer_notation(value):
      return {

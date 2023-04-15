@@ -1,11 +1,12 @@
-from fastapi import FastAPI
-from fastapi import UploadFile,File
+from fastapi import FastAPI ,UploadFile, File
 from image_processing_core import cropPerspective ,get_answer
 from PIL import Image
 import uvicorn
+from typing import List
 import uuid
-import numpy as np
-import cv2
+
+class Answer:
+    answer: List
 
 app = FastAPI(debug=True)
 IMAGEDIR = "images/"
@@ -17,7 +18,6 @@ async def hello_world():
 
 @app.post('/predict')
 async def predict_image(file:UploadFile = File(...)):
-    
     # Get image and save file to images folder
     file.filename = f"{uuid.uuid4()}.jpg"
     contents= await file.read()
@@ -28,9 +28,9 @@ async def predict_image(file:UploadFile = File(...)):
     im = Image.fromarray(numpy_array)
     im_crop = f"{IMAGECROPDIR}{uuid.uuid4()}.jpg"
     im.save(im_crop)
-    get_answer(im_crop)
+    id , answer = get_answer(im_crop)
     
-    return {"headers":file.headers ,"filename": file.filename}
+    return {"id":id,"answer":answer,"headers":file.headers ,"filename": file.filename}
 
 
 if __name__ == "__main__":
