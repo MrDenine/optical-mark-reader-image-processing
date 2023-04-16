@@ -4,6 +4,7 @@ from PIL import Image
 import uvicorn
 from typing import List
 import uuid
+import json
 
 class Answer:
     answer: List
@@ -15,6 +16,12 @@ IMAGECROPDIR = "crop/"
 @app.get('/')
 async def hello_world():
     return 'services is online.'
+
+@app.get('/response')
+async def response():
+    with open('assets/response.json', encoding="utf8") as f:
+        d = json.load(f)
+        return d
 
 @app.post('/predict')
 async def predict_image(file:UploadFile = File(...)):
