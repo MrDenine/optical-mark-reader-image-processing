@@ -107,60 +107,28 @@ def get_answer(filename : str):
     # Find contours
     cnts, heir = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
+    main_contours = []
 
-    max_a = 0  # Maximum area
-    smax_a = 0 # Second maximum area
-    tmax_a = 0 # Third maximum area
-    fmax_a = 0 # Fourth maximum area
-
-    max_c = []  # Contour with maximum area
-    smax_c = [] # Contour with second maximum area (maximum excluding max_c)
-    tmax_c = [] # Contour with third maximum area (maximum excluding max_c)
-    fmax_c = [] # Contour with fourth maximum area (maximum excluding max_c)
-
-
-    # Iterate contours
     for c in cnts:
-        area = cv2.contourArea(c)
-        if area > max_a:    # If area is grater than maximum, second max = max, and max = area
-            smax_a = max_a
-            smax_c = max_c  # Second max contour gets maximum contour
-            max_a = area
-            max_c = c       # Maximum contour gets c
-        elif area > smax_a: # If area is grater than second maximum, replace second maximum
-            smax_a = area
-            smax_c = c
-        elif area > tmax_a: # If area is grater than third maximum, replace third maximum
-            tmax_a = area
-            tmax_c = c
-        elif area > fmax_a: # If area is grater than fourth maximum, replace fourth maximum
-            fmax_a = area
-            fmax_c = c
+         area = cv2.contourArea(c)
+         if area > 200000:
+             main_contours.append(c)
 
-    #Get bounding rectangle of contour with maximum area, and mark it with green rectangle
-    x, y, w, h = cv2.boundingRect(max_c)
-    im_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
-    
-    #Save object to image file
-    roi = im_arr_bgr[y:y+h, x:x+w]
-    cv2.imwrite(f"{ROI}section1.jpg", roi)
+    section1Cnts = contours.sort_contours(main_contours,"top-to-bottom")[0]
 
-    #Get bounding rectangle of contour with second maximum area, and mark it with blue rectangle
-    x, y, w, h = cv2.boundingRect(smax_c)
-    ims_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
+    for (q, i) in enumerate(np.arange(0, len(section1Cnts))):
+
+        x, y, w, h = cv2.boundingRect(section1Cnts[i])
+        im_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
     
-    #Save object to image file
-    roi = ims_arr_bgr[y:y+h, x:x+w]
-    cv2.imwrite(f"{ROI}section2.jpg", roi)
-    
-    #Get bounding rectangle of contour with third maximum area, and mark it with blue rectangle
-    x, y, w, h = cv2.boundingRect(tmax_c)
-    imt_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
-    
-    #Save object to image file
-    roi = imt_arr_bgr[y:y+h, x:x+w]
-    cv2.imwrite(f"{ROI}id.jpg", roi)
-    answer = [*get_section1() , *get_section2()]
+        roi = im_arr_bgr[y:y+h, x:x+w]
+
+        if i == 0:
+            cv2.imwrite(f"{ROI}id.jpg", roi)
+        else :
+            cv2.imwrite(f"{ROI}section{i}.jpg", roi)
+
+    answer = [*get_section(1) , *get_section(2), *get_section(3), *get_section(4), *get_section(5)]
 
     json_answer = [dict(zip(("no","answer"),x)) for x in answer]
     return get_id() , json_answer
@@ -184,12 +152,13 @@ def get_id():
         approx = cv2.approxPolyDP(c, 0.035 * peri, True)
         x,y,w,h = cv2.boundingRect(approx)
         aspect_ratio = w / float(h)
-        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2) and (w >= 22 and w <= 24):
-            # cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+        if len(approx) == 4 and (aspect_ratio >= 0.5 and aspect_ratio <= 1.5)  and (w >= 30 and w <= 36):
+            cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
             cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
             checkbox_contours.append(c)
 
-    # print('Checkboxes:', len(checkbox_contours))
+    # cv2.imshow("original",original)
+    # cv2.waitKey(0)
     
     idCnts = contours.sort_contours(checkbox_contours)[0]
     idList = []
@@ -227,9 +196,9 @@ def get_id():
     _id = "".join(str(item) for item in idList)
     return _id
     
-def get_section1():
+def get_section(section:int):
     # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
-    image = cv2.imread(f'{ROI}section1.jpg')
+    image = cv2.imread(f'{ROI}section{section}.jpg')
     original = image.copy()
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (3,3), 0)
@@ -246,21 +215,24 @@ def get_section1():
         approx = cv2.approxPolyDP(c, 0.035 * peri, True)
         x,y,w,h = cv2.boundingRect(approx)
         aspect_ratio = w / float(h)
-        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2)  and (w >= 33 and w <= 35):
-            # cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2)  and (w >= 37 and w <= 40):
+            cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
             cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
             checkbox_contours.append(c)
 
-    # print('Checkboxes:', len(checkbox_contours))
+    # cv2.imshow("original",original)
+    # cv2.waitKey(0)
+
+    print('Checkboxes:', len(checkbox_contours))
     
-    section1Cnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
-    section1List = []
+    sectionCnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
+    sectionList = []
     
-    for (q, i) in enumerate(np.arange(0, len(section1Cnts), 4)):
+    for (q, i) in enumerate(np.arange(0, len(sectionCnts), 4)):
         # sort the contours for the current question from
         # left to right, then initialize the index of the
         # check answer
-        cnts = contours.sort_contours(section1Cnts[i:i + 4])[0]
+        cnts = contours.sort_contours(sectionCnts[i:i + 4])[0]
         answer = None
     # loop over the sorted contours
         for (j, c) in enumerate(cnts):
@@ -280,91 +252,23 @@ def get_section1():
             # bubbled-in answer
             
             if answer is None and total > 400:
-                answer = (q+1,get_answer_notation(j+1))
+                answer = (q+1 + (0 if section == 1 else (section * 20) - 20),get_answer_notation(j+1))
                 
             elif answer is not None and total > 400 : 
-                answer = (q+1,None) 
+                answer = (q+1 + (0 if section == 1 else (section * 20) - 20),None) 
             
             if j+1 == 4 and answer is None:
-                answer = (q+1,None) 
+                answer = (q+1 + (0 if section == 1 else (section * 20) - 20),None) 
+
                 
-        section1List.append(answer)
+        sectionList.append(answer)
             
             # cv2.imshow("mask", mask)
             # cv2.waitKey()
 
     # print('section1List:', section1List)
-    return section1List
+    return sectionList
 
-def get_section2():
-    # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
-    image = cv2.imread(f'{ROI}section2.jpg')
-    original = image.copy()
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (3,3), 0)
-    thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-    
-    # Find contours and filter using contour area filtering to remove noise
-    cnts, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    
-    # Detect checkboxes using shape approximation and aspect ratio filtering
-    checkbox_contours = []
-    
-    for c in cnts:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.035 * peri, True)
-        x,y,w,h = cv2.boundingRect(approx)
-        aspect_ratio = w / float(h)
-        if len(approx) == 4 and (aspect_ratio >= 0.8 and aspect_ratio <= 1.2)  and (w >= 33 and w <= 35):
-            # cv2.putText(original, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
-            cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
-            checkbox_contours.append(c)
-
-    # print('Checkboxes:', len(checkbox_contours))
-    
-    section2Cnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
-    section2List = []
-    
-    for (q, i) in enumerate(np.arange(0, len(section2Cnts), 4)):
-        # sort the contours for the current question from
-        # left to right, then initialize the index of the
-        # check answer
-        cnts = contours.sort_contours(section2Cnts[i:i + 4])[0]
-        answer = None
-    # loop over the sorted contours
-        for (j, c) in enumerate(cnts):
-            # construct a mask that reveals only the current
-            # "box" for the question
-            mask = np.zeros(thresh.shape, dtype="uint8")
-            cv2.drawContours(mask, [c], -1, 255, -1)
-            
-            # apply the mask to the thresholded image, then
-            # count the number of non-zero pixels in the
-            # box area
-            mask = cv2.bitwise_and(thresh, thresh, mask=mask)
-            total = cv2.countNonZero(mask)
-            
-            # if the current total has a larger number of total
-            # non-zero pixels, then we are examining the currently
-            # bubbled-in answer
-            
-            if answer is None and total > 400:
-                answer = (q+21,get_answer_notation(j+1))
-                
-            elif answer is not None and total > 400 : 
-                answer = (q+21,None) 
-            
-            if j+1 == 4 and answer is None:
-                answer = (q+21,None) 
-                
-        section2List.append(answer)
-            
-            # cv2.imshow("mask", mask)
-            # cv2.waitKey()
-
-    # print('section2List:', section2List)
-    
-    return section2List
 
 def get_answer_notation(value):
      return {
