@@ -114,19 +114,28 @@ def get_answer(filename : str):
          if area > 200000:
              main_contours.append(c)
 
-    section1Cnts = contours.sort_contours(main_contours,"top-to-bottom")[0]
+    sectionCnts = contours.sort_contours(main_contours,"left-to-right")[0]
 
-    for (q, i) in enumerate(np.arange(0, len(section1Cnts))):
+    num_of_section = 1
 
-        x, y, w, h = cv2.boundingRect(section1Cnts[i])
+    for (q, i) in enumerate(np.arange(0, len(sectionCnts))):
+
+        x, y, w, h = cv2.boundingRect(sectionCnts[i])
         im_arr_bgr = cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 255), thickness = 0)
-    
+
+        cv2.putText(im_arr_bgr, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+        cv2.rectangle(im_arr_bgr, (x, y), (x + w, y + h), (36,255,12), 3)
+
         roi = im_arr_bgr[y:y+h, x:x+w]
 
-        if i == 0:
+        # cv2.imshow("im_arr_bgr",im_arr_bgr)
+        # cv2.waitKey(0)
+
+        if w > 300:
             cv2.imwrite(f"{ROI}id.jpg", roi)
         else :
-            cv2.imwrite(f"{ROI}section{i}.jpg", roi)
+            cv2.imwrite(f"{ROI}section{num_of_section}.jpg", roi)
+            num_of_section = num_of_section + 1
 
     answer = [*get_section(1) , *get_section(2), *get_section(3), *get_section(4), *get_section(5)]
 
@@ -184,13 +193,13 @@ def get_id():
             mask = cv2.bitwise_and(thresh, thresh, mask=mask)
             total = cv2.countNonZero(mask)
 
-            if total > 300:
+            if total > 150:
                 if(j+1 < 10):
                     idList.append(j+1)
                 else :
                     idList.append(0)
     
-    if(len(idList)!=13):
+    if(len(idList)<13):
         return False
     
     _id = "".join(str(item) for item in idList)
@@ -223,7 +232,7 @@ def get_section(section:int):
     # cv2.imshow("original",original)
     # cv2.waitKey(0)
 
-    print('Checkboxes:', len(checkbox_contours))
+    # print('Checkboxes:', len(checkbox_contours))
     
     sectionCnts = contours.sort_contours(checkbox_contours,"top-to-bottom")[0]
     sectionList = []
@@ -250,17 +259,16 @@ def get_section(section:int):
             # if the current total has a larger number of total
             # non-zero pixels, then we are examining the currently
             # bubbled-in answer
-            
-            if answer is None and total > 400:
+
+            if answer is None and total > 800:
                 answer = (q+1 + (0 if section == 1 else (section * 20) - 20),get_answer_notation(j+1))
                 
-            elif answer is not None and total > 400 : 
+            elif answer is not None and total > 800 : 
                 answer = (q+1 + (0 if section == 1 else (section * 20) - 20),None) 
             
             if j+1 == 4 and answer is None:
                 answer = (q+1 + (0 if section == 1 else (section * 20) - 20),None) 
 
-                
         sectionList.append(answer)
             
             # cv2.imshow("mask", mask)
