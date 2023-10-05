@@ -25,6 +25,7 @@ async def response():
 
 @app.post('/predict')
 async def predict_image(file:UploadFile = File(...)):
+    print("tasedasdasd ", file)
     # Get image and save file to images folder
     file.filename = f"{uuid.uuid4()}.jpg"
     contents= await file.read()
@@ -41,4 +42,4 @@ async def predict_image(file:UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app,host='0.0.0.0',port=3000)
+    uvicorn.run(app,host='0.0.0.0',port=4000)
