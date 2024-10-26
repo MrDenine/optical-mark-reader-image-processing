@@ -17,15 +17,14 @@ IMAGECROPDIR = "crop/"
 async def hello_world():
     return 'services is online.'
 
-@app.get('/response')
+@app.get('/mock_response')
 async def response():
-    with open('assets/response.json', encoding="utf8") as f:
+    with open('assets/mock_response.json', encoding="utf8") as f:
         d = json.load(f)
         return d
 
 @app.post('/predict')
 async def predict_image(file:UploadFile = File(...)):
-    print("tasedasdasd ", file)
     # Get image and save file to images folder
     file.filename = f"{uuid.uuid4()}.jpg"
     contents= await file.read()
