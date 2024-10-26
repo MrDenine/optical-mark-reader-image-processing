@@ -128,6 +128,9 @@ def get_answer(filename : str):
 
         roi = im_arr_bgr[y:y+h, x:x+w]
 
+        # cv2.imwrite(f"{ROI}scan-rect${i}.jpg", im_arr_bgr) #save scan fils
+
+
         # cv2.imshow("im_arr_bgr",im_arr_bgr)
         # cv2.waitKey(0)
 
@@ -229,6 +232,8 @@ def get_section(section:int):
             cv2.rectangle(original, (x, y), (x + w, y + h), (36,255,12), 3)
             checkbox_contours.append(c)
 
+            
+    # cv2.imwrite(f"{ROI}scan-answer${section}.jpg", original)
     # cv2.imshow("original",original)
     # cv2.waitKey(0)
 
@@ -271,8 +276,8 @@ def get_section(section:int):
 
         sectionList.append(answer)
             
-            # cv2.imshow("mask", mask)
-            # cv2.waitKey()
+        # cv2.imshow("mask", mask)
+        # cv2.waitKey()
 
     # print('section1List:', section1List)
     return sectionList
